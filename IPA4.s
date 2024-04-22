@@ -1,7 +1,7 @@
 
 ;CS 274
 ;
-; IPA 3: 3.1
+; IPA 4
 
 ;print string instructions
 ;MOV AH, 0x13            ; move BIOS interrupt number in AH
