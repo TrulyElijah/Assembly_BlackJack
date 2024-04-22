@@ -258,8 +258,6 @@ def comp_bet_mode{
     MOV DL, 0               ; Start writing from column 0
     int 0x10                ; Invoke BIOS interrupt
     
-    ; Let's assume the user input is stored somewhere in memory, let's call it user_input
-    
     ; Load user input (mode)
     call input_check    ; Assuming the mode is stored in AL
     
@@ -319,10 +317,6 @@ MOV ah, 0x13            ; BIOS interrupt for printing string
     ; Generate a random number to determine the action
     call rng                ; Assuming rng function generates a random number
     
-    ; Adjust the random number based on the risk level
-    ; (You need to implement this logic based on the stored risk level)
-    movzx bx, byte [risk_level]  ; Load the stored risk level
-    
     ; Determine the action based on the adjusted random number
     mov ax, [random_number] ; Assuming random number is stored in memory
     cmp ax, 33              ; Check if random number is less than 33 (33%)
@@ -372,15 +366,12 @@ def difficulty{
     ; If none of the levels match, default to Normal level
     normal_level:
         ; Default parameters for Normal difficulty
-        ; Adjust parameters as needed
         jmp difficulty_done   ; Jump to the end of difficulty level setting
     easy_level:
         ; Decrease initial money for computer opponent (50% of human's initial amount)
-        ; Logic for adjusting parameters for Easy difficulty goes here
         jmp difficulty_done   ; Jump to the end of difficulty level setting
     hard_level:
         ; Increase initial money for computer opponent (50% extra money than the human)
-        ; Logic for adjusting parameters for Hard difficulty goes here
     difficulty_done:
     
     ret
