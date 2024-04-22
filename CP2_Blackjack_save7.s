@@ -259,7 +259,7 @@ def comp_bet_mode{
     int 0x10                ; Invoke BIOS interrupt
     
     ; Load user input (mode)
-    call input_check    ; Assuming the mode is stored in AL
+    call input_check   
     
     ; Determine bet amount based on the mode
     cmp al, 'C'             ; Check if mode is Conservative
@@ -271,8 +271,6 @@ def comp_bet_mode{
     
     ; If none of the modes match, default to Normal mode
     normal_mode:
-        ; Match human bet
-        ; Assume bet amount is stored somewhere in memory, let's call it bet_amount
         mov al, [bet_amount]   ; Load bet amount
         jmp bet_done           ; Jump to the end of the betting logic
     conservative_mode:
@@ -285,8 +283,6 @@ def comp_bet_mode{
         mov al, [bet_amount]   ; Load bet amount
         add al, 30             ; Add 30%
     bet_done:
-        ; Store the bet amount for the computer opponent
-        ; Assuming it's stored in a specific memory location, let's call it comp_bet_amount
         mov [comp_bet_amount], al  ; Store the computed bet amount
     ret
     
@@ -311,13 +307,12 @@ MOV ah, 0x13            ; BIOS interrupt for printing string
     movzx ax, byte offset buffer ; Load the ASCII input
     sub ax, '0'             ; Convert ASCII character to integer
     
-    ; Store the risk level in memory
+    ; Store the risk level in mem
     mov [risk_level], ax    ; Store the risk level for further processing
     
     ; Generate a random number to determine the action
     call rng                ; Assuming rng function generates a random number
     
-    ; Determine the action based on the adjusted random number
     mov ax, [random_number] ; Assuming random number is stored in memory
     cmp ax, 33              ; Check if random number is less than 33 (33%)
     jb keep_hand            ; Jump if random number is less than 33%
@@ -354,7 +349,7 @@ def difficulty{
     int 0x10                ; Invoke BIOS interrupt
     
     ; Load user input (difficulty level)
-    MOV al, [user_difficulty_input]    ; Assuming the difficulty level is stored in AL
+    MOV al, [user_difficulty_input]  
     
     cmp al, 'E'             ; Check if difficulty level is Easy
     je easy_level           ; Jump if difficulty level is Easy
