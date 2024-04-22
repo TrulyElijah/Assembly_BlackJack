@@ -201,7 +201,6 @@ def string_to_num { ;could be a method instead MAYBE
 
     MOV bp, OFFSET deck
     ;mov al, byte [4] ;rand number n (index of deck)
-    mov byte [4], 3 ; remove after -> forcing 6 here
     mov al, byte [4]
     mov ah, 0
     mov si, ax 
