@@ -32,7 +32,13 @@ bet_amount: db 0x00     ;storing bet amount
 ;printable strings
 deck: db "23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA"
 db 0x00
-money_question: db "How much would you like to bet? Must be a number between $10-$1000" 
+money_question: db "How much would you like to bet? Must be a number between $10-$1000"
+
+; adding questions for 3.4
+bet_question: db "Which mode would you like to play against: Conservative, Normal, or Aggressive?"
+risk_question: db "Determine the risk level you would like to play against for each action: Keep hand, Add card, Forfeit card. Must add to 100."
+difficulty_question: db "Select difficulty mode: Easy, Normal, or Hard"
+
 db 0x00
 of: db "of"
 db 0x00
@@ -238,6 +244,145 @@ def string_to_num { ;could be a method instead MAYBE
     cmp dl, 0x4B           ; Compare with ASCII value of 'K'
     je  convert_K            ; Jump if equal to 'K'
 
+    ret
+}
+; 3.4 logic for game modes
+; computer betting mode
+def comp_bet_mode{
+
+    MOV ah, 0x13            ; BIOS interrupt for printing string
+    MOV CX, 46              ; Length of string for bet question
+    MOV BX, 0               ; Set BX to 0 for segment start of string
+    MOV ES, BX              ; Move segment start of string to ES
+    MOV BP, OFFSET bet_question   ; Start offset of bet question string
+    MOV DL, 0               ; Start writing from column 0
+    int 0x10                ; Invoke BIOS interrupt
+    
+    ; Let's assume the user input is stored somewhere in memory, let's call it user_input
+    
+    ; Load user input (mode)
+    call input_check    ; Assuming the mode is stored in AL
+    
+    ; Determine bet amount based on the mode
+    cmp al, 'C'             ; Check if mode is Conservative
+    je conservative_mode     ; Jump if mode is Conservative
+    cmp al, 'N'             ; Check if mode is Normal
+    je normal_mode           ; Jump if mode is Normal
+    cmp al, 'A'             ; Check if mode is Aggressive
+    je aggressive_mode       ; Jump if mode is Aggressive
+    
+    ; If none of the modes match, default to Normal mode
+    normal_mode:
+        ; Match human bet
+        ; Assume bet amount is stored somewhere in memory, let's call it bet_amount
+        mov al, [bet_amount]   ; Load bet amount
+        jmp bet_done           ; Jump to the end of the betting logic
+    conservative_mode:
+        ; Under-bet human by 20%
+        mov al, [bet_amount]   ; Load bet amount
+        sub al, 20             ; Subtract 20%
+        jmp bet_done           ; Jump to the end of the betting logic
+    aggressive_mode:
+        ; Outmatch human bet by 30%
+        mov al, [bet_amount]   ; Load bet amount
+        add al, 30             ; Add 30%
+    bet_done:
+        ; Store the bet amount for the computer opponent
+        ; Assuming it's stored in a specific memory location, let's call it comp_bet_amount
+        mov [comp_bet_amount], al  ; Store the computed bet amount
+    ret
+    
+}
+
+; computer risk level 
+def comp_risk_level{
+MOV ah, 0x13            ; BIOS interrupt for printing string
+    mov cx, 68              ; Length of string for risk question
+    mov bx, 0               ; Set BX to 0 for segment start of string
+    mov es, bx              ; Move segment start of string to ES
+    mov bp, OFFSET risk_question   ; Start offset of risk question string
+    mov dl, 0               ; Start writing from column 0
+    int 0x10                ; Invoke BIOS interrupt
+    
+    ; Read user input for risk level
+    mov ah, 0x0A            ; BIOS function for buffered input
+    lea dx, buffer          ; Load the buffer address
+    int 0x21                ; Invoke BIOS interrupt to read input
+    
+    ; Convert the ASCII input to binary (assuming it's a single digit)
+    movzx ax, byte offset buffer ; Load the ASCII input
+    sub ax, '0'             ; Convert ASCII character to integer
+    
+    ; Store the risk level in memory
+    mov [risk_level], ax    ; Store the risk level for further processing
+    
+    ; Generate a random number to determine the action
+    call rng                ; Assuming rng function generates a random number
+    
+    ; Adjust the random number based on the risk level
+    ; (You need to implement this logic based on the stored risk level)
+    movzx bx, byte [risk_level]  ; Load the stored risk level
+    
+    ; Determine the action based on the adjusted random number
+    mov ax, [random_number] ; Assuming random number is stored in memory
+    cmp ax, 33              ; Check if random number is less than 33 (33%)
+    jb keep_hand            ; Jump if random number is less than 33%
+    cmp ax, 66              ; Check if random number is less than 66 (66%)
+    jb add_card             ; Jump if random number is less than 66%
+    jmp forfeit_hand        ; If not keeping or adding, forfeit the hand
+    
+keep_hand:
+    ; Keep current hand
+    mov [comp_action], 'K' ; Store action as Keep
+    ret
+
+add_card:
+    ; Add another card
+    mov [comp_action], 'A' ; Store action as Add
+    ret
+
+forfeit_hand:
+    ; Forfeit current hand
+    mov [comp_action], 'F' ; Store action as Forfeit
+    
+    ret
+}
+
+; difficulty mode
+def difficulty{
+
+    MOV ah, 0x13            ; BIOS interrupt for printing string
+    MOV CX, 41              ; Length of string for difficulty question
+    MOV BX, 0               ; Set BX to 0 for segment start of string
+    MOV ES, BX              ; Move segment start of string to ES
+    MOV BP, OFFSET difficulty_question  ; Start offset of difficulty question string
+    MOV DL, 0               ; Start writing from column 0
+    int 0x10                ; Invoke BIOS interrupt
+    
+    ; Load user input (difficulty level)
+    MOV al, [user_difficulty_input]    ; Assuming the difficulty level is stored in AL
+    
+    cmp al, 'E'             ; Check if difficulty level is Easy
+    je easy_level           ; Jump if difficulty level is Easy
+    cmp al, 'N'             ; Check if difficulty level is Normal
+    je normal_level         ; Jump if difficulty level is Normal
+    cmp al, 'H'             ; Check if difficulty level is Hard
+    je hard_level           ; Jump if difficulty level is Hard
+    
+    ; If none of the levels match, default to Normal level
+    normal_level:
+        ; Default parameters for Normal difficulty
+        ; Adjust parameters as needed
+        jmp difficulty_done   ; Jump to the end of difficulty level setting
+    easy_level:
+        ; Decrease initial money for computer opponent (50% of human's initial amount)
+        ; Logic for adjusting parameters for Easy difficulty goes here
+        jmp difficulty_done   ; Jump to the end of difficulty level setting
+    hard_level:
+        ; Increase initial money for computer opponent (50% extra money than the human)
+        ; Logic for adjusting parameters for Hard difficulty goes here
+    difficulty_done:
+    
     ret
 }
 
