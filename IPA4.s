@@ -12,8 +12,6 @@
 ;MOV DL, 0               ; start writing from col 0
 ;int 0x10                ; BIOS inter
 
-;set null spaces for input to be stored
-
 ;rng variables
 db 0xAD      ;X0 (173)       ;Xk starts at (173), then Xk+1
 db 0xAD
@@ -201,6 +199,15 @@ def display_card {
     call check_suit
     
     ret
+}
+
+def erase_card{
+    ;sets card value to 0 in deck after it has been used
+    mov ax,0        ;reset ax
+    mov bp, offset deck     ;pointer to deck string
+    mov al, byte [4]        ;load n index into al
+    add bp,ax               ;find nth value in deck 
+    mov byte [bp],0         ;set nth value to 0 in deck  
 }
 
 def string_to_num { ;could be a method instead MAYBE
