@@ -26,6 +26,8 @@ num_cards: db 0x34      ;initial set at 52
 ;player variables
 player_score: db 0x00 ; Will be used for player score
 cpu_score: db 0x00
+player_wins: db 0x00
+cpu_wins: db 0x00
 bet_amount: db 0x00     ;storing bet amount
 
 ;printable strings
@@ -49,9 +51,9 @@ s: db "Spades"
 db 0x00
 h: db "Hearts"
 db 0x00
-player_wins: db "You win!"
+player_win: db "You win!"
 db 0x00
-cpu_wins: db "CPU wins!"
+cpu_win: db "CPU wins!"
 db 0x00
 
 player_choice: db "hit, stand, or forfeit (type h, s, or f)"
@@ -131,31 +133,26 @@ def rng{
 }
 
 
-def win{
+win:
     ;print player wins statement
     MOV AH, 0x13            ; move BIOS interrupt number in AH
     MOV CX, 9              ; move length of string in cx
     MOV BX, 0               ; mov 0 to bx, so we can move it to es
     MOV ES, BX              ; move segment start of string to es, 0
-    MOV BP, OFFSET player_wins   ; move start offset of string in bp
+    MOV BP, OFFSET player_win   ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
 
-    ret
-}
-
-def lose{
+lose:
     ;print cpu win statement
     MOV AH, 0x13            ; move BIOS interrupt number in AH
     MOV CX, 10              ; move length of string in cx
     MOV BX, 0               ; mov 0 to bx, so we can move it to es
     MOV ES, BX              ; move segment start of string to es, 0
-    MOV BP, OFFSET cpu_wins    ; move start offset of string in bp
+    MOV BP, OFFSET cpu_win    ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
 
-    ret
-}
 
 def input_check{ ; input of bet placed
 
@@ -188,8 +185,8 @@ def check_suit{ ; checks what suit the card picked is
     ret
 }
 
-def display_card {
-
+def display_card { ; player hit method
+    call rng
     ; randomly displays value of card
     MOV bp, OFFSET deck
     mov al, byte [4]
@@ -198,9 +195,6 @@ def display_card {
     mov ah, 0x02 ; BIOS function for printing char in ah, 
     mov dl, byte [bp]
     int 0x21    ;print card value
-    
-    ; Card value stored in dl
-    
     
     ;print string instructions
     MOV AH, 0x13            ; move BIOS interrupt number in AH
@@ -212,6 +206,7 @@ def display_card {
     int 0x10                ; BIOS inter
     
     call check_suit
+    
     
     ret
 }
@@ -290,36 +285,30 @@ convert_4:
     add al, 0x4             ; Add the integer value for '4'
     mov byte [7], al        ; Store the result back into byte[7]
    
-
 convert_5:
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x5             ; Add the integer value for '5'
     mov byte [7], al        ; Store the result back into byte[7]
    
-
 convert_6:
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x6             ; Add the integer value for '6'
     mov byte [7], al        ; Store the result back into byte[7]
    
-
 convert_7:
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x7             ; Add the integer value for '7'
     mov byte [7], al        ; Store the result back into byte[7]
   
-
 convert_8:
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x8             ; Add the integer value for '8'
     mov byte [7], al        ; Store the result back into byte[7]
-  
 
 convert_9:
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x9             ; Add the integer value for '9'
     mov byte [7], al        ; Store the result back into byte[7]
-    
 
 convert_T:
     mov al, byte [7]        ; Load current value of byte[7] into al
@@ -374,6 +363,7 @@ player_choice_meth:
 
 player_hit:
     mov dx, ax ;place holder
+    call display_card ; has rng inside
     
     ;give user another card
     ;change current value
@@ -392,6 +382,22 @@ player_forfeit:
     ;add current value plus 10
     ;ret
 ;}
+
+def compare_wins{
+    mov ax, 0
+    mov bx, 0
+    mov al, byte[offset player_wins]
+    mov bl, byte[offset cpu_wins]
+    
+    cmp al, bl
+    jg win ; change proce
+    jl lose
+    ;je tie
+    
+    ret
+}
+
+
 
 
 start:
@@ -469,6 +475,9 @@ _game_loop:
     ;call win            ;test win print function
     ;call lose           ;test cpu win print function   
 
+
+    ; ask user if they would like to continue, if not 
+    ; call game end and check who's winning
 
     
 
