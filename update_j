@@ -23,12 +23,17 @@ db 0x00 ;     ;random num n, for card indexing
 num_decks: db 0x01      ;initial set at 1
 num_cards: db 0x34      ;initial set at 52
 
-;player variables
+;score variables
 player_score: db 0x00 ; Will be used for player score
 cpu_score: db 0x00
+
+;win variables
 player_wins: db 0x00
 cpu_wins: db 0x00
-bet_amount: db 0x00     ;storing bet amount
+
+;bet variables
+player_bets: db 0x00     ;storing bet amount
+cpu_bets: db 0x00
 
 ;printable strings
 deck: db "23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA"
@@ -52,6 +57,8 @@ db 0x00
 h: db "Hearts"
 db 0x00
 player_win: db "You win!"
+db 0x00
+game_tie: db "It's a tie!"
 db 0x00
 cpu_win: db "CPU wins!"
 db 0x00
@@ -140,6 +147,17 @@ win:
     MOV BX, 0               ; mov 0 to bx, so we can move it to es
     MOV ES, BX              ; move segment start of string to es, 0
     MOV BP, OFFSET player_win   ; move start offset of string in bp
+    MOV DL, 0               ; start writing from col 0
+    int 0x10                ; BIOS inter
+
+
+tie:
+    ;print tie statement
+    MOV AH, 0x13            ; move BIOS interrupt number in AH
+    MOV CX, 9              ; move length of string in cx
+    MOV BX, 0               ; mov 0 to bx, so we can move it to es
+    MOV ES, BX              ; move segment start of string to es, 0
+    MOV BP, OFFSET game_tie   ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
 
@@ -397,7 +415,32 @@ def compare_wins{
     ret
 }
 
+def compare_scores{
+    mov ax,0
+    mov bx,0
 
+    mov al, byte [offset player_score]
+    mov bl, byte [offset cpu_score]
+
+    cmp ax,bx
+    jg _inc_player_win
+    cmp ax,bx
+    jl _inc_cpu_win
+    
+    ret
+}
+
+_inc_player_win:
+    mov ax,0
+    mov al,byte [offset player_wins]
+    inc ax
+    mov byte [offset player_wins],al
+
+_inc_cpu_win:
+    mov ax,0
+    mov al,byte [offset cpu_wins]
+    inc ax
+    mov byte [offset cpu_wins],al
 
 
 start:
