@@ -13,11 +13,11 @@
 ;int 0x10                ; BIOS inter
 
 ;rng variables
-db 0xAD      ;X0 (173)       ;Xk starts at (173), then Xk+1
-db 0xAD
-db 0x03       ;A value a, odd and ideally co-prime to (3)
-db 0xFB       ;A large prime m that fits in a register of the required size (251)
-db 0x00 ;     ;random num n, for card indexing
+x0: db 0xAD      ;X0 (173)       ;Xk starts at (173), then Xk+1
+xk: db 0xAD
+a: db 0x03       ;A value a, odd and ideally co-prime to (3)
+m: db 0xFB       ;A large prime m that fits in a register of the required size (251)
+n: db 0x00 ;     ;random num n, for card indexing
 
 ;game configs
 num_decks: db 0x01      ;initial set at 1
