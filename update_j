@@ -25,6 +25,7 @@ num_cards: db 0x34      ;initial set at 52
 
 ;player variables
 player_score: db 0x00 ; Will be used for player score
+cpu_score: db 0x00
 bet_amount: db 0x00     ;storing bet amount
 
 ;printable strings
