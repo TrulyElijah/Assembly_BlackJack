@@ -127,7 +127,7 @@ def calc_num_cards{
     
     
     mov ax, 0x34        ;move '52' into ax
-    mul byte [5]        ;multipy 52 by num of decks
+    mul byte [offset num_decks]        ;multipy 52 by num of decks
     mov byte [bp],al    ;update num cards in memory
     
     mov ax,0    ;reset ax
@@ -135,14 +135,17 @@ def calc_num_cards{
 
 def rng{
     ;reset all registers
+    
+    call calc_num_cards
+    
     mov ax,0
     mov bx,0
     mov cx,0
     mov dx,0
     
-    mov al, byte [1]    ;X subscript k
-    mov bl, byte [2]    ;coprime a
-    mov cl, byte [3]    ;prime number m
+    mov al, byte [offset xk]    ;X subscript k
+    mov bl, byte [offset a]    ;coprime a
+    mov cl, byte [offset m]    ;prime number m
     mov dx, 0
    
     
@@ -150,13 +153,14 @@ def rng{
     mul bx              ;multiply a by X subscript k
     div cx              ;then mod m = X subscript k+1
     mov ax,dx           ;this is Xk+1
-    mov byte [1],al     ;store k+1 into mem[0]
-  
+    mov byte [offset xk],al     ;store k+1 into mem[0]
+    
     mov dx,0            ;reset dx 
-    mov cl,byte[6]
+    mov byte [offset xk],al     ;store k+1 into mem[0]
+    mov cl,byte[offset num_cards]
     ;obtain index by n = Xk+1 mod num of cards
     div cx            ;Xk+1 mod num of cards
-    mov byte [4], dl    ;store n into mem[4]
+    mov byte [offset n], dl    ;store n into mem[4]
     
     ;reset all registers
     mov ax,0
@@ -166,7 +170,6 @@ def rng{
     
     ret
 }
-
 
 win:
     ;print player wins statement
