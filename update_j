@@ -203,6 +203,51 @@ def check_suit{ ; checks what suit the card picked is
     ret
 }
 
+_print_h:
+;print string instructions
+    MOV AH, 0x13            ; move BIOS interrupt number in AH
+    MOV CX, 6             ; move length of string in cx
+    MOV BX, 0               ; mov 0 to bx, so we can move it to es
+    MOV ES, BX              ; move segment start of string to es, 0
+    MOV BP, OFFSET h   ; move start offset of string in bp
+    MOV DL, 0               ; start writing from col 0
+    int 0x10                ; BIOS inter
+    jmp string_to_num
+ 
+
+_print_c:
+;print string instructions
+    MOV AH, 0x13            ; move BIOS interrupt number in AH
+    MOV CX, 5             ; move length of string in cx
+    MOV BX, 0               ; mov 0 to bx, so we can move it to es
+    MOV ES, BX              ; move segment start of string to es, 0
+    MOV BP, OFFSET c   ; move start offset of string in bp
+    MOV DL, 0               ; start writing from col 0
+    int 0x10                ; BIOS inter
+    jmp string_to_num
+    
+_print_s:
+;print string instructions
+    MOV AH, 0x13            ; move BIOS interrupt number in AH
+    MOV CX, 5             ; move length of string in cx
+    MOV BX, 0               ; mov 0 to bx, so we can move it to es
+    MOV ES, BX              ; move segment start of string to es, 0
+    MOV BP, OFFSET s   ; move start offset of string in bp
+    MOV DL, 0               ; start writing from col 0
+    int 0x10                ; BIOS inter
+    jmp string_to_num
+    
+_print_d:
+;print string instructions
+    MOV AH, 0x13            ; move BIOS interrupt number in AH
+    MOV CX,  8           ; move length of string in cx
+    MOV BX, 0               ; mov 0 to bx, so we can move it to es
+    MOV ES, BX              ; move segment start of string to es, 0
+    MOV BP, OFFSET d   ; move start offset of string in bp
+    MOV DL, 0               ; start writing from col 0
+    int 0x10                ; BIOS inter
+    jmp string_to_num
+
 def display_card { ; player hit method
     call rng
     ; randomly displays value of card
@@ -461,51 +506,6 @@ start:
     
     call input_check    ;test input check function, will be changed later
     
-_print_h:
-;print string instructions
-    MOV AH, 0x13            ; move BIOS interrupt number in AH
-    MOV CX, 6             ; move length of string in cx
-    MOV BX, 0               ; mov 0 to bx, so we can move it to es
-    MOV ES, BX              ; move segment start of string to es, 0
-    MOV BP, OFFSET h   ; move start offset of string in bp
-    MOV DL, 0               ; start writing from col 0
-    int 0x10                ; BIOS inter
-    jmp string_to_num
- 
-
-_print_c:
-;print string instructions
-    MOV AH, 0x13            ; move BIOS interrupt number in AH
-    MOV CX, 5             ; move length of string in cx
-    MOV BX, 0               ; mov 0 to bx, so we can move it to es
-    MOV ES, BX              ; move segment start of string to es, 0
-    MOV BP, OFFSET c   ; move start offset of string in bp
-    MOV DL, 0               ; start writing from col 0
-    int 0x10                ; BIOS inter
-    jmp string_to_num
-    
-_print_s:
-;print string instructions
-    MOV AH, 0x13            ; move BIOS interrupt number in AH
-    MOV CX, 5             ; move length of string in cx
-    MOV BX, 0               ; mov 0 to bx, so we can move it to es
-    MOV ES, BX              ; move segment start of string to es, 0
-    MOV BP, OFFSET s   ; move start offset of string in bp
-    MOV DL, 0               ; start writing from col 0
-    int 0x10                ; BIOS inter
-    jmp string_to_num
-    
-_print_d:
-;print string instructions
-    MOV AH, 0x13            ; move BIOS interrupt number in AH
-    MOV CX,  8           ; move length of string in cx
-    MOV BX, 0               ; mov 0 to bx, so we can move it to es
-    MOV ES, BX              ; move segment start of string to es, 0
-    MOV BP, OFFSET d   ; move start offset of string in bp
-    MOV DL, 0               ; start writing from col 0
-    int 0x10                ; BIOS inter
-    jmp string_to_num
-
 _player_turn:
 
 _cpu_turn:
