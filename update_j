@@ -44,6 +44,7 @@ money_question: db "How much would you like to bet? Must be a number between $10
 bet_question: db "Which mode would you like to play against: Conservative, Normal, or Aggressive?"
 risk_question: db "Determine the risk level you would like to play against for each action: Keep hand, Add card, Forfeit card. Must add to 100."
 difficulty_question: db "Select difficulty mode: Easy, Normal, or Hard"
+deck_question: db "How many decks of cards? 1-3"
 
 db 0x00
 of: db "of"
@@ -74,7 +75,7 @@ base:
 ; INT 0x10h need an initial 'guess' of how
 ; many characters will appear
 ;N:  db 0x0a
-buffer:    ; Maximum value to read
+buffer:    ; value of intial bet amount
     
     db 0x05    ; Actual value read after INT
     db 0x05
@@ -84,6 +85,33 @@ buffer:    ; Maximum value to read
     db 0xff
 
 buffer2:    ;value for player choice (h, s, f)
+    
+    db 0x03    ; Actual value read after INT
+    db 0x03
+    db [0xff, 0x03] ; Buffer of the right size  
+                    ; First value: filler
+                    ; Second value: number of bytes
+    db 0xff
+    
+buffer3:    ;value for number of decks
+    
+    db 0x03    ; Actual value read after INT
+    db 0x03
+    db [0xff, 0x03] ; Buffer of the right size  
+                    ; First value: filler
+                    ; Second value: number of bytes
+    db 0xff
+    
+buffer4:    ;value for computer betting mode (C, N, A)
+    
+    db 0x03    ; Actual value read after INT
+    db 0x03
+    db [0xff, 0x03] ; Buffer of the right size  
+                    ; First value: filler
+                    ; Second value: number of bytes
+    db 0xff
+    
+buffer5:    ;value for computer difficulty (E, N, H)
     
     db 0x03    ; Actual value read after INT
     db 0x03
@@ -170,24 +198,6 @@ lose:
     MOV BP, OFFSET cpu_win    ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
-
-
-def input_check{ ; input of bet placed
-
-
-    ;check if valid bet is placed
-    cmp byte [si,1], 1 ;check if bet size has less than 2 integers
-    jl start         ;jump back to start if so
-    cmp byte [si,1],3  ;check if bet size has greater than 4 integers
-    jg start         ;jump back to start if so
-    jl _game_loop    ;bet is between 10-1000, jump to game loop
-    cmp byte [si,5], 0x30  ;check if last number is between 1000-1999,i.e greater than 1000
-    jg start         ;jump to start if so
-    jmp _game_loop  ;bet is between 10-1000, jump to game loop
-    
-    ret
-}
-
 
 def check_suit{ ; checks what suit the card picked is
     ; 4th byte (5th index)
@@ -281,7 +291,173 @@ def erase_card{
     mov al, byte [4]        ;load n index into al
     add bp,ax               ;find nth value in deck 
     mov byte [bp],0         ;set nth value to 0 in deck  
+    
+    ret
 }
+
+def ask_bet_amount{
+    
+    ; Initialize relevant variable
+    ; Use interrupt here to read user input
+    MOV ah, 0x13            ; move BIOS interrupt number in AH
+    MOV cx, 66          ; move length of string in cx
+    MOV bx, 0               ; mov 0 to bx, so we can move it to es
+    MOV es, bx             ; move segment start of string to es, 0
+    MOV bp, OFFSET money_question   ; move start offset of string in bp
+    MOV dl, 0              ; start writing from col 0
+    int 0x10                ; BIOS inter
+    
+    mov ah, 0x0A
+    lea dx, word buffer
+    mov si, dx ;index i, start at 53
+    int 0x21
+    
+    ;check if valid bet is placed
+    cmp byte [si,1], 1 ;check if bet size has less than 2 integers
+    jl start         ;jump back to start if so
+    cmp byte [si,1],3  ;check if bet size has greater than 4 integers
+    jg start         ;jump back to start if so
+    jl _game_loop    ;bet is between 10-1000, jump to game loop
+    cmp byte [si,5], 0x30  ;check if last number is between 1000-1999,i.e greater than 1000
+    jg start         ;jump to start if so
+    jmp _game_loop  ;bet is between 10-1000, jump to game loop
+    
+    ret
+    
+}
+
+; 3.4 logic for game modes
+; computer betting mode
+def ask_bet_mode{
+
+    MOV ah, 0x13            ; BIOS interrupt for printing string
+    MOV CX, 79        ; Length of string for bet question
+    MOV BX, 0               ; Set BX to 0 for segment start of string
+    MOV ES, BX              ; Move segment start of string to ES
+    MOV BP, OFFSET bet_question   ; Start offset of bet question string
+    MOV DL, 0               ; Start writing from column 0
+    int 0x10                ; Invoke BIOS interrupt
+    
+    mov ah, 0x0A
+    lea dx, word buffer4
+    mov si, dx
+    int 0x21
+    
+     ;Determine bet amount based on the mode
+    cmp byte [si,2], 0x43             ; Check if mode is Conservative
+    je conservative_mode     ; Jump if mode is Conservative
+    cmp byte [si,2], 0x4E             ; Check if mode is Normal
+    je normal_mode           ; Jump if mode is Normal
+    cmp byte [si,2], 0x41             ; Check if mode is Aggressive
+    je aggressive_mode       ; Jump if mode is Aggressive
+    
+    ret
+}
+    
+; If none of the modes match, default to Normal mode
+normal_mode:
+    mov al, byte [offset player_bets]   ; Load bet amount
+    jmp bet_done           ; Jump to the end of the betting logic
+    
+conservative_mode:
+    ; Under-bet human by 20%
+    mov al, byte [offset player_bets]   ; Load bet amount
+    sub al, 20             ; Subtract 20%
+    jmp bet_done           ; Jump to the end of the betting logic
+    
+aggressive_mode:
+    ; Outmatch human bet by 30%
+    mov al, byte [offset player_bets]   ; Load bet amount
+    add al, 30             ; Add 30%
+    jmp bet_done
+    
+bet_done:
+    mov byte [offset cpu_bets], al  ; Store the computed bet amount
+
+def ask_num_decks{
+    MOV ah, 0x13            ; BIOS interrupt for printing string
+    MOV CX, 28     ; Length of string for bet question
+    MOV BX, 0               ; Set BX to 0 for segment start of string
+    MOV ES, BX              ; Move segment start of string to ES
+    MOV BP, OFFSET deck_question    ; Start offset of bet question string
+    MOV DL, 0               ; Start writing from column 0
+    int 0x10                ; Invoke BIOS interrupt
+    
+    mov ah, 0x0A
+    lea dx, word buffer3
+    mov si, dx
+    int 0x21
+    
+    mov al, byte [si,2]
+    cmp al,0x31
+    je one_deck
+    cmp al,0x32
+    je two_decks
+    cmp al,0x33
+    je three_decks
+    
+    ret
+} 
+
+; If none of the modes match, default to Normal mode
+one_deck:
+    mov al, byte [offset num_decks]   ; Load bet amount
+    jmp decks_done           ; Jump to the end of the betting logic
+    
+two_decks:
+    ; Under-bet human by 20%
+    mov al, byte [offset num_decks]   ; Load bet amount
+    inc al             ; Subtract 20%
+    jmp decks_done           ; Jump to the end of the betting logic
+    
+three_decks:
+    ; Outmatch human bet by 30%
+    mov al, byte [offset num_decks]   ; Load bet amount
+    inc al             ; Add 1
+    inc al             ; Add 1
+    jmp decks_done
+    
+decks_done:
+    mov byte [offset num_decks], al  ; Store the computed bet amount
+    
+; difficulty mode
+def ask_difficulty{
+
+    MOV ah, 0x13            ; BIOS interrupt for printing string
+    MOV CX, 46             ; Length of string for difficulty question
+    MOV BX, 0               ; Set BX to 0 for segment start of string
+    MOV ES, BX              ; Move segment start of string to ES
+    MOV BP, OFFSET difficulty_question  ; Start offset of difficulty question string
+    MOV DL, 0               ; Start writing from column 0
+    int 0x10                ; Invoke BIOS interrupt
+    
+    mov ah, 0x0A
+    lea dx, word buffer5
+    mov si, dx
+    int 0x21
+    
+    cmp byte [si,2], 0x45             ; Check if difficulty level is Easy
+    je easy_level           ; Jump if difficulty level is Easy
+    cmp byte [si,2], 0x4E             ; Check if difficulty level is Normal
+    je normal_level         ; Jump if difficulty level is Normal
+    cmp byte [si,2], 0x48             ; Check if difficulty level is Hard
+    je hard_level           ; Jump if difficulty level is Hard
+    
+    ret
+}
+    
+; If none of the levels match, default to Normal level
+normal_level:
+    ; Default parameters for Normal difficulty
+    jmp difficulty_done   ; Jump to the end of difficulty level setting
+easy_level:
+    ; Decrease initial money for computer opponent (50% of human's initial amount)
+    jmp difficulty_done   ; Jump to the end of difficulty level setting
+hard_level:
+    ; Increase initial money for computer opponent (50% extra money than the human)
+difficulty_done:
+    
+   
 
 string_to_num: ;could be a method instead MAYBE
 
@@ -489,23 +665,8 @@ _inc_cpu_win:
 
 
 start:
-    ; Initialize relevant variable
-    ; Use interrupt here to read user input
-    MOV ah, 0x13            ; move BIOS interrupt number in AH
-    MOV cx, 66          ; move length of string in cx
-    MOV bx, 0               ; mov 0 to bx, so we can move it to es
-    MOV es, bx             ; move segment start of string to es, 0
-    MOV bp, OFFSET money_question   ; move start offset of string in bp
-    MOV dl, 0              ; start writing from col 0
-    int 0x10                ; BIOS inter
-    
-    mov ah, 0x0A
-    lea dx, word buffer
-    mov si, dx ;index i, start at 53
-    int 0x21
-    
-    call input_check    ;test input check function, will be changed later
-    
+   
+   call ask_num_decks
 _player_turn:
 
 _cpu_turn:
