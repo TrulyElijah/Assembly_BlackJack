@@ -42,8 +42,11 @@ money_question: db "How much would you like to bet? Must be a number between $10
 
 ; adding questions for 3.4
 bet_question: db "Which mode would you like to play against: Conservative, Normal, or Aggressive?"
+db 0x00
 risk_question: db "Determine the risk level you would like to play against for each action: Keep hand, Add card, Forfeit card. Must add to 100."
+db 0x00
 difficulty_question: db "Select difficulty mode: Easy, Normal, or Hard"
+db 0x00
 deck_question: db "How many decks of cards? 1-3"
 
 db 0x00
