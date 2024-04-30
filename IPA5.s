@@ -34,12 +34,22 @@ cpu_wins: db 0x00
 player_bets: db 0x00  db 0x00  ;total bet amount player has (takes 2 bytes in memory)
 cpu_bets: db 0x00  db 0x00      ;total bet amount cpu has   (takes 2 bytes in memory)
 
+;bet variables
+total_player_bets: db 0x01  db 0x0e  ;total bet amount player has (takes 2 bytes in memory)
+total_cpu_bets: db 0x00  db 0x00      ;total bet amount cpu has   (takes 2 bytes in memory)
+
+round_player_bet: db 0x00  db 0x00        ;round bet player has made
+round_cpu_bet:  db 0x00 db 0x00        ;round bet cpu has made
+
+betting_pool: db 0x00 db 0x00           ;round_player_bet + round_cpu_bet (winner gets the sum)
+
 ;printable strings
 deck: db "23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQKA"
 db 0x00
-money_question: db "How much would you like to bet? Must be a number between $10-$1000"
-
-; adding questions for 3.4
+total_bet_question: db "How much betting money would you like? Must be a number between $10-$1000"
+db 0x00
+round_bet_question: db "How much would you like to bet? Make sure its between your current total bets "
+db 0x00
 bet_question: db "Which mode would you like to play against: Conservative, Normal, or Aggressive?"
 db 0x00
 risk_question: db "Determine the risk level you would like to play against for each action: Keep hand, Add card, Forfeit card. Must add to 100."
@@ -123,6 +133,15 @@ buffer4:    ;value for computer betting mode (C, N, A)
     db 0xff
     
 buffer5:    ;value for computer difficulty (E, N, H)
+    
+    db 0x03    ; Actual value read after INT
+    db 0x03
+    db [0xff, 0x03] ; Buffer of the right size  
+                    ; First value: filler
+                    ; Second value: number of bytes
+    db 0xff
+
+buffer6:    ;value for amount of round bet made
     
     db 0x03    ; Actual value read after INT
     db 0x03
@@ -487,7 +506,7 @@ _cpu_stand:
 
 
 
-win:
+_win:
     ;print player wins statement
     MOV AH, 0x13            ; move BIOS interrupt number in AH
     MOV CX, 9              ; move length of string in cx
@@ -498,7 +517,7 @@ win:
     int 0x10                ; BIOS inter
 
 
-tie:
+_tie:
     ;print tie statement
     MOV AH, 0x13            ; move BIOS interrupt number in AH
     MOV CX, 9              ; move length of string in cx
@@ -508,7 +527,7 @@ tie:
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
 
-lose:
+_lose:
     ;print cpu win statement
     MOV AH, 0x13            ; move BIOS interrupt number in AH
     MOV CX, 10              ; move length of string in cx
@@ -517,6 +536,7 @@ lose:
     MOV BP, OFFSET cpu_win    ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
+
 
 
 
@@ -583,7 +603,6 @@ _print_d:
 
 
 
-
 def display_card { ; player hit method
     call rng
     ; randomly displays value of card
@@ -622,17 +641,15 @@ def erase_card{
 
 
 
-
-
-def ask_bet_amount{
+_ask_total_bet_amount:
     
     ; Initialize relevant variable
     ; Use interrupt here to read user input
     MOV ah, 0x13            ; move BIOS interrupt number in AH
-    MOV cx, 66          ; move length of string in cx
+    MOV cx, 73       ; move length of string in cx
     MOV bx, 0               ; mov 0 to bx, so we can move it to es
     MOV es, bx             ; move segment start of string to es, 0
-    MOV bp, OFFSET money_question   ; move start offset of string in bp
+    MOV bp, OFFSET total_bet_question   ; move start offset of string in bp
     MOV dl, 0              ; start writing from col 0
     int 0x10                ; BIOS inter
     
@@ -643,22 +660,18 @@ def ask_bet_amount{
     
     ;check if valid bet is placed
     cmp byte [si,1], 1 ;check if bet size has less than 2 integers
-    jl start         ;jump back to start if so
+    jl _ask_total_bet_amount         ;jump back to start if so
     cmp byte [si,1],3  ;check if bet size has greater than 4 integers
-    jg start         ;jump back to start if so
-    jl convert_bet    ;bet is between 10-1000, jump to game loop
+    jg _ask_total_bet_amount         ;jump back to start if so
+    jl _convert_total_bet    ;bet is between 10-1000, jump to game loop
     cmp byte [si,5], 0x30  ;check if last number is between 1000-1999,i.e greater than 1000
-    jg start         ;jump to start if so
-    jmp convert_bet  ;bet is between 10-1000, jump to game loop
+    jg _ask_total_bet_amount         ;jump to start if so
+    jmp _convert_total_bet  ;bet is between 10-1000, jump to game loop
     
-    ret
-    
-}
-
-convert_bet:
+_convert_total_bet:
     ;convert bet string into integer
     mov bp, offset buffer
-    mov di,offset player_bets
+    mov di,offset total_player_bets
     add bp,1
     
     mov ax,0x01 
@@ -672,21 +685,22 @@ convert_bet:
     mov cx,0
     mov cl,byte [bp]  ;load length of string into cl
     
+    
     cmp cl, 3       ;check if in 1000's place
-    je mult_by_1000     ;multiply curr char by 1000
+    je _mult_by_1000     ;multiply curr char by 1000
     cmp cl, 2           ;check if in 100's place
-    je mult_by_100      ;multiply curr char by 100
+    je _mult_by_100      ;multiply curr char by 100
     cmp cl, 1           ;check if in 10's place
-    je mult_by_10       ;multiply curr char by 10
+    je _mult_by_10       ;multiply curr char by 10
             
     ;add ones place to player_bets                    
     sub bl,0x30          
     mul bl              ;1 x curr char val
     add byte[di,1], al  ;add ones places to player_bets
   
-    jmp _game_loop      ;conversion is finished,jump somewhere (will be changed)
+    jmp _ask_bet_mode      ;conversion is finished,jump somewhere (will be changed)
     
-mult_by_10:
+_mult_by_10:
     ;operation to multiply by base 10^1
     mov dx, 0x0A
     mul dx            ;1 x 10
@@ -694,11 +708,12 @@ mult_by_10:
     mul bx            ;10 x curr char val
     add byte[di],ah     ;add result to player_bets (upper byte)
     add byte [di,1],al  ;add result to player_bets (lower byte)
+   
     inc si              ;increment to next char
     dec byte[bp]
-    jmp convert_bet
+    jmp _convert_total_bet
     
-mult_by_100:
+_mult_by_100:
     ;operation to multiply by base 10^2
     mov dx, 0x64        
     mul dx            ;1 x 100
@@ -708,9 +723,9 @@ mult_by_100:
     add byte [di,1],al  ;add result to player_bets (lower byte)
     inc si              ;increment to next char
     dec byte[bp]
-    jmp convert_bet
+    jmp _convert_total_bet
 
-mult_by_1000:
+_mult_by_1000:
      ;operation to multiply by base 10^3
     mov dx, 0x3E8
     mul dx            ;1 x 1000
@@ -720,15 +735,109 @@ mult_by_1000:
     add byte [di,1],al  ;add result to player_bets (lower byte)
     inc si              ;increment to next char
     dec byte[bp]
-    jmp convert_bet
+    jmp _convert_total_bet
+    
+_ask_round_bet_amount:
+    
+    ; Initialize relevant variable
+    ; Use interrupt here to read user input
+    MOV ah, 0x13            ; move BIOS interrupt number in AH
+    MOV cx, 77      ; move length of string in cx
+    MOV bx, 0               ; mov 0 to bx, so we can move it to es
+    MOV es, bx             ; move segment start of string to es, 0
+    MOV bp, OFFSET round_bet_question   ; move start offset of string in bp
+    MOV dl, 0              ; start writing from col 0
+    int 0x10                ; BIOS inter
+    
+    mov ah, 0x0A
+    lea dx, word buffer6
+    mov si, dx ;index i, start at 53
+    int 0x21
+    
+    ; Check if the value is greater than 0 and less than the total bets
+    mov bp, offset total_player_bets
+    mov ah, byte [bp];load total player bets number (16 bytes)
+    mov al, byte [bp,1]
+    
+    ;VALID INPUT CHECK NEEDS TO BE FINISHED
+    ;cmp byte [si,2], 0    ; Check if the value is greater than 0
+    ;jle _ask_round_bet_amount ; Jump to start if not greater than 0
+    ;cmp  [si,], ; Compare with total bets (assuming it's a 16-bit integer)
+    ;jg _ask_round_bet_amount ; Jump to start if greater than total bets
+    ;jl _convert_round_bet ; Value is valid, proceed to game loop
+
+    
+_convert_round_bet:
+    ;convert bet string into integer
+    mov bp, offset buffer6
+    mov di,offset round_player_bet
+    add bp,1
+    
+    mov ax,0x01 
+    
+    mov bx,0
+    mov bl, byte [si,2]   ;load current char in string
+    
+    ;cmp bl, 0xff    ; check if at end of string in buffer
+    ;je _game_loop   ;finished converting, jump to next step (will be changed)
+    
+    mov cx,0
+    mov cl,byte [bp]  ;load length of string into cl
+    
+    
+    cmp cl, 3       ;check if in 1000's place
+    je _mul_by_1000     ;multiply curr char by 1000
+    cmp cl, 2           ;check if in 100's place
+    je _mul_by_100      ;multiply curr char by 100
+    cmp cl, 1           ;check if in 10's place
+    je _mul_by_10       ;multiply curr char by 10
+            
+    ;add ones place to player_bets                    
+    sub bl,0x30          
+    mul bl              ;1 x curr char val
+    add byte[di,1], al  ;add ones places to player_bets
+  
+    jmp start     ;conversion is finished,jump somewhere (will be changed)
+    
+_mul_by_10:
+    ;operation to multiply by base 10^1
+    mov dx, 0x0A
+    mul dx            ;1 x 10
+    sub bl,0x30       ;convert char val to hex value  
+    mul bx            ;10 x curr char val
+    add byte[di],ah     ;add result to player_bets (upper byte)
+    add byte [di,1],al  ;add result to player_bets (lower byte)
+    inc si              ;increment to next char
+    dec byte[bp]
+    jmp _convert_round_bet
+    
+_mul_by_100:
+    ;operation to multiply by base 10^2
+    mov dx, 0x64        
+    mul dx            ;1 x 100
+    sub bl,0x30       ;convert char val to hex value  
+    mul bx            ;100 x curr char val
+    add byte[di],ah     ;add result to player_bets (upper byte)
+    add byte [di,1],al  ;add result to player_bets (lower byte)
+    inc si              ;increment to next char
+    dec byte[bp]
+    jmp _convert_round_bet
+
+_mul_by_1000:
+     ;operation to multiply by base 10^3
+    mov dx, 0x3E8
+    mul dx            ;1 x 1000
+    sub bl,0x30       ;convert char val to hex value  
+    mul bx            ;1000 x curr char val
+    add byte[di],ah     ;add result to player_bets (upper byte)
+    add byte [di,1],al  ;add result to player_bets (lower byte)
+    inc si              ;increment to next char
+    dec byte[bp]
+    jmp _convert_round_bet    
     
 
-
-
-
-; 3.4 logic for game modes
 ; computer betting mode
-def ask_bet_mode{
+_ask_bet_mode:
 
     MOV ah, 0x13            ; BIOS interrupt for printing string
     MOV CX, 79        ; Length of string for bet question
@@ -745,40 +854,35 @@ def ask_bet_mode{
     
      ;Determine bet amount based on the mode
     cmp byte [si,2], 0x43             ; Check if mode is Conservative
-    je conservative_mode     ; Jump if mode is Conservative
+    je _conservative_mode     ; Jump if mode is Conservative
     cmp byte [si,2], 0x4E             ; Check if mode is Normal
-    je normal_mode           ; Jump if mode is Normal
+    je _normal_mode           ; Jump if mode is Normal
     cmp byte [si,2], 0x41             ; Check if mode is Aggressive
-    je aggressive_mode       ; Jump if mode is Aggressive
+    je _aggressive_mode       ; Jump if mode is Aggressive
     
-    ret
-}
     
 ; If none of the modes match, default to Normal mode
-normal_mode:
-    mov al, byte [offset player_bets]   ; Load bet amount
-    jmp bet_done           ; Jump to the end of the betting logic
+_normal_mode:
+    mov al, byte [offset round_player_bet]   ; Load bet amount
+    jmp _bet_done           ; Jump to the end of the betting logic
     
-conservative_mode:
+_conservative_mode:
     ; Under-bet human by 20%
-    mov al, byte [offset player_bets]   ; Load bet amount
+    mov al, byte [offset round_player_bet]   ; Load bet amount
     sub al, 20             ; Subtract 20%
-    jmp bet_done           ; Jump to the end of the betting logic
+    jmp _bet_done           ; Jump to the end of the betting logic
     
-aggressive_mode:
+_aggressive_mode:
     ; Outmatch human bet by 30%
-    mov al, byte [offset player_bets]   ; Load bet amount
+    mov al, byte [offset round_player_bet]   ; Load bet amount
     add al, 30             ; Add 30%
-    jmp bet_done
+    jmp _bet_done
     
-bet_done:
-    mov byte [offset cpu_bets], al  ; Store the computed bet amount
+_bet_done:
+    mov byte [offset round_cpu_bet], al  ; Store the computed bet amount
+    jmp _ask_num_decks      ;jump to next question
 
-
-
-
-
-def ask_num_decks{
+_ask_num_decks:
     MOV ah, 0x13            ; BIOS interrupt for printing string
     MOV CX, 28     ; Length of string for bet question
     MOV BX, 0               ; Set BX to 0 for segment start of string
@@ -794,43 +898,36 @@ def ask_num_decks{
     
     mov al, byte [si,2]
     cmp al,0x31
-    je one_deck
+    je _one_deck
     cmp al,0x32
-    je two_decks
+    je _two_decks
     cmp al,0x33
-    je three_decks
+    je _three_decks
     
-    ret
-} 
-
 ; If none of the modes match, default to Normal mode
-one_deck:
+_one_deck:
     mov al, byte [offset num_decks]   ; Load bet amount
-    jmp decks_done           ; Jump to the end of the betting logic
+    jmp _decks_done           ; Jump to the end of the betting logic
     
-two_decks:
+_two_decks:
     ; Under-bet human by 20%
     mov al, byte [offset num_decks]   ; Load bet amount
     inc al             ; Subtract 20%
-    jmp decks_done           ; Jump to the end of the betting logic
+    jmp _decks_done           ; Jump to the end of the betting logic
     
-three_decks:
+_three_decks:
     ; Outmatch human bet by 30%
     mov al, byte [offset num_decks]   ; Load bet amount
     inc al             ; Add 1
     inc al             ; Add 1
-    jmp decks_done
+    jmp _decks_done
     
-decks_done:
+_decks_done:
     mov byte [offset num_decks], al  ; Store the computed bet amount
     
     
-    
-    
-    
-    
 ; difficulty mode
-def ask_difficulty{
+_ask_difficulty:
 
     MOV ah, 0x13            ; BIOS interrupt for printing string
     MOV CX, 46             ; Length of string for difficulty question
@@ -846,25 +943,22 @@ def ask_difficulty{
     int 0x21
     
     cmp byte [si,2], 0x45             ; Check if difficulty level is Easy
-    je easy_level           ; Jump if difficulty level is Easy
+    je _easy_level           ; Jump if difficulty level is Easy
     cmp byte [si,2], 0x4E             ; Check if difficulty level is Normal
-    je normal_level         ; Jump if difficulty level is Normal
+    je _normal_level         ; Jump if difficulty level is Normal
     cmp byte [si,2], 0x48             ; Check if difficulty level is Hard
-    je hard_level           ; Jump if difficulty level is Hard
-    
-    ret
-}
+    je _hard_level           ; Jump if difficulty level is Hard
     
 ; If none of the levels match, default to Normal level
-normal_level:
+_normal_level:
     ; Default parameters for Normal difficulty
-    jmp difficulty_done   ; Jump to the end of difficulty level setting
-easy_level:
+    jmp _difficulty_done   ; Jump to the end of difficulty level setting
+_easy_level:
     ; Decrease initial money for computer opponent (50% of human's initial amount)
-    jmp difficulty_done   ; Jump to the end of difficulty level setting
-hard_level:
+    jmp _difficulty_done   ; Jump to the end of difficulty level setting
+_hard_level:
     ; Increase initial money for computer opponent (50% extra money than the human)
-difficulty_done:
+_difficulty_done:
     
 
 string_to_num: ;for player
@@ -1128,14 +1222,14 @@ def compare_wins{
     mov bl, byte[offset cpu_wins]
     
     cmp al, bl
-    jg win ; change proce
-    jl lose
+    jg _win ; change proce
+    jl _lose
     ;je tie
     
     ret
 }
 
-def compare_scores{
+_compare_scores:
     mov ax,0
     mov bx,0
 
@@ -1147,9 +1241,6 @@ def compare_scores{
     cmp ax,bx
     jl _inc_cpu_win
     
-    ret
-}
-
 _inc_player_win:
     mov ax,0
     mov al,byte [offset player_wins]
@@ -1166,11 +1257,10 @@ _inc_cpu_win:
 
 
 
-
 ; Gameplay
 
 start:
-   call ask_bet_amount
+   jmp _ask_total_bet_amount
    ;call ask_num_decks
 _player_turn:
 
