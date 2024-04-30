@@ -35,7 +35,7 @@ player_bets: db 0x00  db 0x00  ;total bet amount player has (takes 2 bytes in me
 cpu_bets: db 0x00  db 0x00      ;total bet amount cpu has   (takes 2 bytes in memory)
 
 ;bet variables
-total_player_bets: db 0x01  db 0x0e  ;total bet amount player has (takes 2 bytes in memory)
+total_player_bets: db 0x00  db 0x00  ;total bet amount player has (takes 2 bytes in memory)
 total_cpu_bets: db 0x00  db 0x00      ;total bet amount cpu has   (takes 2 bytes in memory)
 
 round_player_bet: db 0x00  db 0x00        ;round bet player has made
