@@ -776,7 +776,7 @@ _convert_total_bet:
     ;add ones place to player_bets                    
     sub bl,0x30          
     mul bl              ;1 x curr char val
-    add byte[di,1], al  ;add ones places to player_bets
+    add byte[di], al  ;add ones places to player_bets
   
     jmp _ask_bet_mode      ;conversion is finished,jump somewhere (will be changed)
     
@@ -786,8 +786,8 @@ _mult_by_10:
     mul dx            ;1 x 10
     sub bl,0x30       ;convert char val to hex value  
     mul bx            ;10 x curr char val
-    add byte[di],ah     ;add result to player_bets (upper byte)
-    add byte [di,1],al  ;add result to player_bets (lower byte)
+    add byte[di],al     ;add result to player_bets (upper byte)
+    add byte [di,1],ah  ;add result to player_bets (lower byte)
    
     inc si              ;increment to next char
     dec byte[bp]
@@ -799,8 +799,8 @@ _mult_by_100:
     mul dx            ;1 x 100
     sub bl,0x30       ;convert char val to hex value  
     mul bx            ;100 x curr char val
-    add byte[di],ah     ;add result to player_bets (upper byte)
-    add byte [di,1],al  ;add result to player_bets (lower byte)
+    add byte[di],al     ;add result to player_bets (upper byte)
+    add byte [di,1],ah  ;add result to player_bets (lower byte)
     inc si              ;increment to next char
     dec byte[bp]
     jmp _convert_total_bet
@@ -811,8 +811,8 @@ _mult_by_1000:
     mul dx            ;1 x 1000
     sub bl,0x30       ;convert char val to hex value  
     mul bx            ;1000 x curr char val
-    add byte[di],ah     ;add result to player_bets (upper byte)
-    add byte [di,1],al  ;add result to player_bets (lower byte)
+    add byte[di],al     ;add result to player_bets (upper byte)
+    add byte [di,1],ah  ;add result to player_bets (lower byte)
     inc si              ;increment to next char
     dec byte[bp]
     jmp _convert_total_bet
@@ -836,16 +836,13 @@ _ask_round_bet_amount:
     
     ; Check if the value is greater than 0 and less than the total bets
     mov bp, offset total_player_bets
-    mov ah, byte [bp];load total player bets number (16 bytes)
-    mov al, byte [bp,1]
+    mov ah, byte [bp,1];load total player bets number (16 bytes)
+    mov al, byte [bp]
     
     ;VALID INPUT CHECK NEEDS TO BE FINISHED
-    ;cmp byte [si,2], 0    ; Check if the value is greater than 0
-    ;jle _ask_round_bet_amount ; Jump to start if not greater than 0
-    ;cmp  [si,], ; Compare with total bets (assuming it's a 16-bit integer)
-    ;jg _ask_round_bet_amount ; Jump to start if greater than total bets
-    ;jl _convert_round_bet ; Value is valid, proceed to game loop
-
+    cmp byte [si,2], 0x30    ; Check if the value is greater than 0
+    jbe _ask_round_bet_amount ; Jump to start if not greater than 0
+    jmp _convert_round_bet
     
 _convert_round_bet:
     ;convert bet string into integer
@@ -875,8 +872,13 @@ _convert_round_bet:
     ;add ones place to player_bets                    
     sub bl,0x30          
     mul bl              ;1 x curr char val
-    add byte[di,1], al  ;add ones places to player_bets
-  
+    add byte[di], al  ;add ones places to player_bets
+    
+    mov dx, word [offset total_player_bets]
+    mov ax,word [offset round_player_bet]
+    cmp word [di], dx
+    jg _ask_round_bet_amount
+    
     jmp start     ;conversion is finished,jump somewhere (will be changed)
     
 _mul_by_10:
@@ -885,8 +887,8 @@ _mul_by_10:
     mul dx            ;1 x 10
     sub bl,0x30       ;convert char val to hex value  
     mul bx            ;10 x curr char val
-    add byte[di],ah     ;add result to player_bets (upper byte)
-    add byte [di,1],al  ;add result to player_bets (lower byte)
+    add byte[di],al     ;add result to player_bets (upper byte)
+    add byte [di,1],ah  ;add result to player_bets (lower byte)
     inc si              ;increment to next char
     dec byte[bp]
     jmp _convert_round_bet
@@ -897,8 +899,8 @@ _mul_by_100:
     mul dx            ;1 x 100
     sub bl,0x30       ;convert char val to hex value  
     mul bx            ;100 x curr char val
-    add byte[di],ah     ;add result to player_bets (upper byte)
-    add byte [di,1],al  ;add result to player_bets (lower byte)
+    add byte[di],al     ;add result to player_bets (upper byte)
+    add byte [di,1],ah  ;add result to player_bets (lower byte)
     inc si              ;increment to next char
     dec byte[bp]
     jmp _convert_round_bet
@@ -909,8 +911,8 @@ _mul_by_1000:
     mul dx            ;1 x 1000
     sub bl,0x30       ;convert char val to hex value  
     mul bx            ;1000 x curr char val
-    add byte[di],ah     ;add result to player_bets (upper byte)
-    add byte [di,1],al  ;add result to player_bets (lower byte)
+    add byte[di],al     ;add result to player_bets (upper byte)
+    add byte [di,1],ah  ;add result to player_bets (lower byte)
     inc si              ;increment to next char
     dec byte[bp]
     jmp _convert_round_bet    
@@ -1010,7 +1012,7 @@ _decks_done:
 _ask_difficulty:
 
     MOV ah, 0x13            ; BIOS interrupt for printing string
-    MOV CX, 43              ; Length of string for difficulty question
+    MOV CX, 43           ; Length of string for difficulty question
     MOV BX, 0               ; Set BX to 0 for segment start of string
     MOV ES, BX              ; Move segment start of string to ES
     MOV BP, OFFSET difficulty_question  ; Start offset of difficulty question string
@@ -1406,11 +1408,15 @@ start:
    ;call ask_num_decks
    
 _player_turn:
-
+    mov ax, word [offset total_player_bets]
+    cmp word [offset total_player_bets],0   ;check if player hit 0 total bets
+    je _lose        ;cpu wins
     mov byte[offset p_to_d_cards], 2 ; resets cards to deal
     jmp player_hit ; starts round for player, does
 
 _cpu_turn:
+    cmp word [offset total_cpu_bets],0      ;check if cpu hit 0 total bets
+    je _win         ;player wins
     mov byte[offset p_to_d_cards], 2 ; resets cards to deal
     jmp _cpu_hit ; starts round for player, does
 
