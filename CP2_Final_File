@@ -491,13 +491,16 @@ convert_K_cpu:
     jbe _cpu_choice_meth
 
 _cpu_choice_meth:
+    ;
     mov ax, 1
 
 _cpu_hit:
-    mov ax, 1
+    call display_card_cpu
 
 _cpu_stand:
     mov ax, 1
+
+
 
 
 
@@ -1257,8 +1260,8 @@ _inc_cpu_win:
 ; Gameplay
 
 start:
-   ;ask first question, game continues
-   jmp _ask_difficulty
+   call ask_bet_amount
+   ;call ask_num_decks
    
 _player_turn:
 
@@ -1266,8 +1269,10 @@ _player_turn:
     jmp player_hit ; starts round for player, does
 
 _cpu_turn:
+    mov byte[offset p_to_d_cards], 2 ; resets cards to deal
+    jmp _cpu_hit ; starts round for player, does
+
+; RESET CPU VALUES SOMEWHERE
+
 
 _game_loop:
-
-
-_end_game:
