@@ -1408,7 +1408,6 @@ start:
    ;call ask_num_decks
    
 _player_turn:
-    mov ax, word [offset total_player_bets]
     cmp word [offset total_player_bets],0   ;check if player hit 0 total bets
     je _lose        ;cpu wins
     mov byte[offset p_to_d_cards], 2 ; resets cards to deal
