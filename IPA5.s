@@ -1213,9 +1213,7 @@ player_forfeit:
 ;}
 
 
-
-
-def compare_wins{
+_compare_wins:
     mov ax, 0
     mov bx, 0
     mov al, byte[offset player_wins]
@@ -1226,9 +1224,6 @@ def compare_wins{
     jl _lose
     ;je tie
     
-    ret
-}
-
 _compare_scores:
     mov ax,0
     mov bx,0
