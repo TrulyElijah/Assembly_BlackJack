@@ -1260,7 +1260,7 @@ _inc_cpu_win:
 ; Gameplay
 
 start:
-   call ask_bet_amount
+   jmp _ask_total_bet_amount
    ;call ask_num_decks
    
 _player_turn:
