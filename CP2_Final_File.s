@@ -1,4 +1,3 @@
-
 ;CS 274
 ;
 ; CP2
@@ -42,7 +41,10 @@ total_cpu_bets: db 0x00  db 0x00      ;total bet amount cpu has   (takes 2 bytes
 round_player_bet: db 0x00  db 0x00        ;round bet player has made
 round_cpu_bet:  db 0x00 db 0x00        ;round bet cpu has made
 
+cpu_bet_multiplier: db 0x00            ; Determined by Conservative (20) or Aggressive mode (30)
+
 betting_pool: db 0x00 db 0x00           ;round_player_bet + round_cpu_bet (winner gets the sum)
+
 
 ; cpu risk levels
 ;cpu_hit_risk: db 0x45 ; 45%
@@ -98,6 +100,7 @@ db 0x00
 ; misc
 p_to_d_cards: db 0x02 ; 2 cards to deal, subtract from this
 c_to_d_cards: db 0x02 ; 2 cards to deal to cpu
+num_rem_cards: db 0x00
 
 x0_cpu: db 0xAD      ;X0 (173)       ;Xk starts at (173), then Xk+1
 xk_cpu: db 0xAD
@@ -169,9 +172,9 @@ buffer5:    ;value for computer difficulty (E, N, H)
 
 buffer6:    ;value for amount of round bet made
     
-    db 0x03    ; Actual value read after INT
-    db 0x03
-    db [0xff, 0x03] ; Buffer of the right size  
+    db 0x05    ; Actual value read after INT
+    db 0x05
+    db [0xff, 0x05] ; Buffer of the right size  
                     ; First value: filler
                     ; Second value: number of bytes
     db 0xff
@@ -276,7 +279,17 @@ def cpu_rng{ ; rng for num that is between 0 and 100
     ret
 }
 
+def erase_card{
+    ;sets card value to 0 in deck after it has been used
+    mov ax,0        ;reset ax
+    mov bp, offset deck     ;pointer to deck string
+    mov al, byte [4]        ;load n index into al
+    add bp,ax               ;find nth value in deck 
+    mov byte [bp],0         ;set nth value to 0 in deck  
     
+    ret
+}
+
 def check_suit_cpu{ ; checks what suit the card picked is
     ; 4th byte (5th index)
     cmp byte[4],0x0C    ;check if n is below 12
@@ -342,6 +355,10 @@ def display_card_cpu{ ; player hit method
     mov al, byte [4]
     mov si, ax; rng card value
     add bp, si ; the index of the string we want to print
+    
+    cmp byte [bp],0
+    je _cpu_hit       ;card has been used, jump back to cpu hit
+    
     mov ah, 0x02 ; BIOS function for printing char in ah, 
     mov dl, byte [bp]
     int 0x21    ;print card value
@@ -406,6 +423,7 @@ string_to_num_cpu: ;for player
 ; AND JUMP TO CPU_CHOICE_METHOD INSTEAD
 
 convert_A_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]        ; Load current value of byte[8] into al (the cpu score of the round so far)
     add al, 0x1             ; Add the integer value for 'A' (e.g., 11 for Ace)
     mov byte [8], al        ; Store the result back into byte[8]
@@ -419,6 +437,7 @@ convert_A_cpu:
     jmp _cpu_choice_meth
 
 convert_2_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]     
     add al, 0x2          
     mov byte [8], al       
@@ -432,6 +451,7 @@ convert_2_cpu:
     
 
 convert_3_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]        
     add al, 0x3             
     mov byte [8], al        
@@ -444,6 +464,7 @@ convert_3_cpu:
     jmp _cpu_choice_meth
     
 convert_4_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]       
     add al, 0x4         
     mov byte [8], al     
@@ -455,6 +476,7 @@ convert_4_cpu:
     jmp _cpu_choice_meth
    
 convert_5_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]       
     add al, 0x5       
     mov byte [8], al   
@@ -466,6 +488,7 @@ convert_5_cpu:
     jmp _cpu_choice_meth
    
 convert_6_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]       
     add al, 0x6            
     mov byte [8], al      
@@ -477,6 +500,7 @@ convert_6_cpu:
     jmp _cpu_choice_meth
    
 convert_7_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]      
     add al, 0x7           
     mov byte [8], al       
@@ -488,6 +512,7 @@ convert_7_cpu:
     jmp _cpu_choice_meth
   
 convert_8_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]     
     add al, 0x8          
     mov byte [8], al     
@@ -499,6 +524,7 @@ convert_8_cpu:
     jmp _cpu_choice_meth
 
 convert_9_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]     
     add al, 0x9       
     mov byte [8], al   
@@ -510,6 +536,7 @@ convert_9_cpu:
     jmp _cpu_choice_meth
 
 convert_T_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]      
     add al, 0xA             ; Add the integer value for 'T' (e.g., 10 for Ten)
     mov byte [8], al       
@@ -521,6 +548,7 @@ convert_T_cpu:
     jmp _cpu_choice_meth
     
 convert_J_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]    
     add al, 0xA            ; Add the integer value for 'J' (e.g., 11 for Jack)
     mov byte [8], al       
@@ -532,6 +560,7 @@ convert_J_cpu:
     jmp _cpu_choice_meth
    
 convert_Q_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]        ; Load current value of byte[7] into al
     add al, 0xA             ; Add the integer value for 'Q' (e.g., 12 for Queen)
     mov byte [8], al        ; Store the result back into byte[7]
@@ -543,6 +572,7 @@ convert_Q_cpu:
     jmp _cpu_choice_meth
    
 convert_K_cpu:
+    call erase_card     ;erase the card in memory
     mov al, byte [8]        ; Load current value of byte[7] into al
     add al, 0xA             ; Add the integer value for 'K' (e.g., 13 for King)
     mov byte [8], al        ; Store the result back into byte[7]
@@ -599,6 +629,10 @@ _win:
     MOV BP, OFFSET player_win   ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
+    
+    mov ax, word [offset betting_pool]      ;load betting pool in ax
+    add word [offset total_player_bets], ax   ; add total player bets with betting pool
+    
     jmp _inc_player_win
 
 
@@ -611,7 +645,13 @@ _tie:
     MOV BP, OFFSET game_tie   ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
-    ;jmp _ask_play_again
+    
+    mov ax, word [offset round_player_bet]      ;load player bet in ax
+    mov bx, word [offset round_cpu_bet]         ;load cpu bet in bx
+     
+    add word [offset total_player_bets],ax      ;add back round bets
+    add word [offset total_cpu_bets],bx         ;add back round bets
+    jmp _ask_play_again
 
 _lose:
     ;print cpu win statement
@@ -622,6 +662,10 @@ _lose:
     MOV BP, OFFSET cpu_win    ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
+    
+    mov ax, word [offset betting_pool]      ;load betting pool in ax
+    add word [offset total_cpu_bets], ax   ; add total cpu bets with betting pool
+    
     jmp _inc_cpu_win
 
 
@@ -690,11 +734,16 @@ _print_d:
 
 def display_card { ; player hit method
     call rng
+    
     ; randomly displays value of card
     MOV bp, OFFSET deck
     mov al, byte [4]
     mov si, ax; rng card value
     add bp, si ; the index of the string we want to print
+    
+    cmp byte [bp],0
+    je player_hit       ;card has been used, jump back to player hit
+    
     mov ah, 0x02 ; BIOS function for printing char in ah, 
     mov dl, byte [bp]
     int 0x21    ;print card value
@@ -712,19 +761,6 @@ def display_card { ; player hit method
     
     ret
 }
-
-def erase_card{
-    ;sets card value to 0 in deck after it has been used
-    mov ax,0        ;reset ax
-    mov bp, offset deck     ;pointer to deck string
-    mov al, byte [4]        ;load n index into al
-    add bp,ax               ;find nth value in deck 
-    mov byte [bp],0         ;set nth value to 0 in deck  
-    
-    ret
-}
-
-
 
 _ask_total_bet_amount:
     
@@ -823,7 +859,9 @@ _mult_by_1000:
     jmp _convert_total_bet
     
 _ask_round_bet_amount:
-    
+    mov word [offset round_player_bet],0        ;reset round bets
+    mov word [offset round_cpu_bet],0
+    mov word [offset betting_pool],0
     ; Initialize relevant variable
     ; Use interrupt here to read user input
     MOV ah, 0x13            ; move BIOS interrupt number in AH
@@ -838,11 +876,6 @@ _ask_round_bet_amount:
     lea dx, word buffer6
     mov si, dx ;index i, start at 53
     int 0x21
-    
-    ; Check if the value is greater than 0 and less than the total bets
-    mov bp, offset total_player_bets
-    mov ah, byte [bp,1];load total player bets number (16 bytes)
-    mov al, byte [bp]
     
     ;VALID INPUT CHECK NEEDS TO BE FINISHED
     cmp byte [si,2], 0x30    ; Check if the value is greater than 0
@@ -884,7 +917,12 @@ _convert_round_bet:
     cmp word [di], dx
     jg _ask_round_bet_amount
     
-    jmp start     ;conversion is finished,jump somewhere (will be changed)
+    mov ax,0
+    mov bx, 0
+    mov cx,0
+    mov dx ,0
+    
+    jmp _set_cpu_round_bet     ;conversion is finished,set cpu bet
     
 _mul_by_10:
     ;operation to multiply by base 10^1
@@ -922,6 +960,55 @@ _mul_by_1000:
     dec byte[bp]
     jmp _convert_round_bet    
     
+_set_cpu_round_bet:
+    cmp byte [offset cpu_bet_multiplier],0x14
+    je _conservative_betting    ;multiplier is 20, jmp to conservative mode
+    cmp byte [offset cpu_bet_multiplier],0x1E
+    je _aggressive_betting      ;multiplier is 30, jmp to aggressive mode
+    jmp _normal_betting         ;multiplier is 0, jmp to normal
+
+_normal_betting:
+    mov cx, word [offset round_player_bet]
+    jmp _betting_done
+
+_conservative_betting:
+    mov bh,0x64                                 ;load 100 into bh
+    mov dx,0
+    mov ax,word [offset round_player_bet]       ;load player bet into ax
+    mov cx,word [offset round_player_bet]       ;load player bet into ax
+    mov bl, byte [offset cpu_bet_multiplier]    ;load  cpu bet multiplier (20) into bl
+    mul bl                                      ;player bet x cpu bet multiplier
+    div bh                                      ;divided product by 100 to obtain
+    sub cx,ax                                   ;subtrack by 20%
+    jmp _betting_done
+
+_aggressive_betting:
+    mov bh,0x64                                 ;load 100 in bh
+    mov dx,0
+    mov ax,word [offset round_player_bet]       ;load player bet into ax
+    mov cx,word [offset round_player_bet]       ;load player bet into ax
+    mov bl, byte [offset cpu_bet_multiplier]    ;load  cpu bet multiplier (30) into bl
+    mul bl                                      ;player bet x cpu bet multiplier
+    div bh                                    ;divided product by 100 to obtain
+    add cx,ax                                   ;add by 30%
+    jmp _betting_done
+    
+_betting_done:
+    mov word [offset round_cpu_bet],cx
+    
+    mov ax, word [offset round_player_bet]      ;load player round bet in ax
+    mov bx , word [offset round_cpu_bet]        ;load cpu round bet in bx
+    sub word [offset total_player_bets],ax      ;subtract total player bets with round bet
+    sub word [offset total_cpu_bets],bx         ;subtrack total cpu bets with round bet
+    
+    jmp _set_betting_pool           ;add up total round bets before taking turns
+    
+_set_betting_pool:
+    
+    mov ax, word[offset round_player_bet]       ;load round player bet into ax
+    add ax, word [offset round_cpu_bet]         ;add round player bet and round cpu bet
+    mov word [offset betting_pool],ax     
+    jmp _player_turn
 
 ; computer betting mode
 _ask_bet_mode:
@@ -950,24 +1037,22 @@ _ask_bet_mode:
     
     
 ; If none of the modes match, default to Normal mode
-_normal_mode:
-    mov al, byte [offset round_player_bet]   ; Load bet amount
+_normal_mode:         
+    mov al, 0
     jmp _bet_done           ; Jump to the end of the betting logic
     
 _conservative_mode:
     ; Under-bet human by 20%
-    mov al, byte [offset round_player_bet]   ; Load bet amount
-    sub al, 20             ; Subtract 20%
+    mov al, 0x14   ; Load 20 into al
     jmp _bet_done           ; Jump to the end of the betting logic
     
 _aggressive_mode:
     ; Outmatch human bet by 30%
-    mov al, byte [offset round_player_bet]   ; Load bet amount
-    add al, 30             ; Add 30%
+    mov al,0x1E  ; Load 30 into al
     jmp _bet_done
     
 _bet_done:
-    mov byte [offset round_cpu_bet], al  ; Store the computed bet amount
+    mov byte [offset cpu_bet_multiplier], al  ; Store the computed bet amount
     jmp _ask_num_decks      ;jump to next question
 
 _ask_num_decks:
@@ -1041,15 +1126,21 @@ _ask_difficulty:
 ; If none of the levels match, default to Normal level
 _normal_level:
     ; Default parameters for Normal difficulty
+    mov ax, word [offset total_player_bets]
     jmp _difficulty_done   ; Jump to the end of difficulty level setting
 _easy_level:
     ; Decrease initial money for computer opponent (50% of human's initial amount)
+    mov ax,word [offset total_player_bets]
+    shr ax,1               ;divide total_player_bets by 2
     jmp _difficulty_done   ; Jump to the end of difficulty level setting
 _hard_level:
     ; Increase initial money for computer opponent (50% extra money than the human)
+     mov ax,word [offset total_player_bets]
+     shl ax,1               ;multiply total_player_bets by 2
+     jmp _difficulty_done   ; Jump to the end of difficulty level setting
 _difficulty_done:
+    mov word [offset total_cpu_bets],ax
     jmp _ask_risk_level
-    
     
 ; SAVE THESE IN MEMORY
 _ask_risk_level: ; for cpu
@@ -1113,7 +1204,7 @@ _ask_risk_level: ; for cpu
     int 0x21
 
     
-    ; jmp to game loop stuff-> player turn
+    jmp _ask_round_bet_amount
 
 
 string_to_num: ;for player
@@ -1158,6 +1249,7 @@ string_to_num: ;for player
     je  convert_K            ; Jump if equal to 'K'
 
 convert_A:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x01             ; Add the integer value for 'A' (e.g., 11 for Ace)
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1171,6 +1263,7 @@ convert_A:
     jmp player_choice_meth
 
 convert_2:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x2             ; Add the integer value for '2'
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1183,6 +1276,7 @@ convert_2:
     
 
 convert_3:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x3             ; Add the integer value for '3'
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1194,6 +1288,7 @@ convert_3:
     jmp player_choice_meth
     
 convert_4:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x4             ; Add the integer value for '4'
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1205,6 +1300,7 @@ convert_4:
     jmp player_choice_meth
    
 convert_5:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x5             ; Add the integer value for '5'
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1216,6 +1312,7 @@ convert_5:
     jmp player_choice_meth
    
 convert_6:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x6             ; Add the integer value for '6'
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1227,6 +1324,7 @@ convert_6:
     jmp player_choice_meth
    
 convert_7:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x7             ; Add the integer value for '7'
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1238,6 +1336,7 @@ convert_7:
     jmp player_choice_meth
   
 convert_8:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x8             ; Add the integer value for '8'
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1249,6 +1348,7 @@ convert_8:
     jmp player_choice_meth
 
 convert_9:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0x9             ; Add the integer value for '9'
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1260,6 +1360,7 @@ convert_9:
     jmp player_choice_meth
 
 convert_T:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0xA             ; Add the integer value for 'T' (e.g., 10 for Ten)
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1271,6 +1372,7 @@ convert_T:
     jmp player_choice_meth
     
 convert_J:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0xA             ; Add the integer value for 'J' (e.g., 11 for Jack)
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1282,6 +1384,7 @@ convert_J:
     jmp player_choice_meth
    
 convert_Q:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0xA             ; Add the integer value for 'Q' (e.g., 12 for Queen)
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1293,6 +1396,7 @@ convert_Q:
     jmp player_choice_meth
    
 convert_K:
+    call erase_card     ;erase the card in memory
     mov al, byte [7]        ; Load current value of byte[7] into al
     add al, 0xA             ; Add the integer value for 'K' (e.g., 13 for King)
     mov byte [7], al        ; Store the result back into byte[7]
@@ -1303,10 +1407,6 @@ convert_K:
     jg player_hit
     jmp player_choice_meth
     
-
-
-
-
 
 ; create a buffer for player choice
 player_choice_meth:
@@ -1347,6 +1447,7 @@ player_stand:
 
     
 player_forfeit:
+
     jmp _inc_cpu_win ;place holder, remove
     ; Subtract player bet from total score
     
@@ -1372,7 +1473,7 @@ _win_game:
 
 _lose_game:
     MOV AH, 0x13            ; move BIOS interrupt number in AH
-    MOV CX, 27              ; move length of string in cx
+    MOV CX, 24             ; move length of string in cx
     MOV BX, 0               ; mov 0 to bx, so we can move it to es
     MOV ES, BX              ; move segment start of string to es, 0
     MOV BP, OFFSET lose_whole_game    ; move start offset of string in bp
@@ -1382,7 +1483,7 @@ _lose_game:
     
 _tie_game:
     MOV AH, 0x13            ; move BIOS interrupt number in AH
-    MOV CX, 21              ; move length of string in cx
+    MOV CX, 22             ; move length of string in cx
     MOV BX, 0               ; mov 0 to bx, so we can move it to es
     MOV ES, BX              ; move segment start of string to es, 0
     MOV BP, OFFSET tie_whole_game   ; move start offset of string in bp
@@ -1422,6 +1523,10 @@ _inc_player_win:
     mov al,byte [offset player_wins]
     inc ax
     mov byte [offset player_wins],al
+    cmp word [offset total_player_bets], 0   ;check if player hit 0 total bets before each turn
+    je _lose_game        ;cpu wins entire game
+    cmp word [offset total_cpu_bets],0      ;check if cpu hit 0 total bets before each turn
+    je _win_game         ;player wins entire game
     jmp _ask_play_again
 
 _inc_cpu_win:
@@ -1429,12 +1534,16 @@ _inc_cpu_win:
     mov al,byte [offset cpu_wins]
     inc ax
     mov byte [offset cpu_wins],al
+    cmp word [offset total_player_bets], 0   ;check if player hit 0 total bets before each turn
+    je _lose_game        ;cpu wins entire game
+    cmp word [offset total_cpu_bets],0      ;check if cpu hit 0 total bets before each turn
+    je _win_game         ;player wins entire game
     jmp _ask_play_again
 
 _ask_play_again:
     ;print string instructions
     MOV AH, 0x13            ; move BIOS interrupt number in AH
-    MOV CX, 32              ; move length of string in cx
+    MOV CX, 34              ; move length of string in cx
     MOV BX, 0               ; mov 0 to bx, so we can move it to es
     MOV ES, BX              ; move segment start of string to es, 0
     MOV BP, OFFSET play_again_question    ; move start offset of string in bp
@@ -1448,7 +1557,7 @@ _ask_play_again:
     
     ;mov al, byte [si,2]
     cmp byte[si,2], 0x59 ; y
-    je _player_turn
+    je _ask_round_bet_amount
     cmp byte[si,2], 0x4E ; n
     je _compare_wins
     jmp _ask_play_again
@@ -1460,22 +1569,16 @@ _ask_play_again:
 ; Gameplay
 
 start:
-    jmp _player_turn
-    
-    ;jmp _ask_total_bet_amount
+    jmp _ask_total_bet_amount
     ;jmp _ask_risk_level
     ;jmp _ask_total_bet_amount
     ;call ask_num_decks
    
 _player_turn:
-    ;cmp word [offset total_player_bets], 0   ;check if player hit 0 total bets before each turn
-    ;je _lose        ;cpu wins
     mov byte[offset p_to_d_cards], 2 ; resets cards to deal
     jmp player_hit ; starts round for player, does
 
 _cpu_turn:
-    ;cmp word [offset total_cpu_bets],0      ;check if cpu hit 0 total bets before each turn
-    ;je _win         ;player wins
     mov byte[offset c_to_d_cards], 2 ; resets cards to deal
     jmp _cpu_hit ; starts round for player, does
 
