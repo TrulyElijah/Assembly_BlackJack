@@ -229,7 +229,7 @@ def rng{
     ret
 }
 
-def cpu_rng{ ; rng for num that is between 0 and
+def cpu_rng{ ; rng for num that is between 0 and 100
     
     
     mov ax,0
@@ -556,15 +556,15 @@ convert_K_cpu:
     jbe _cpu_choice_meth
 
 _cpu_choice_meth:
-    ; call _cpu_rng
+    call cpu_rng
  
     ; byte [offset n_cpu] ; random number 
    
-    ;cmp 45, cpu_rand_num
+    cmp byte[offset n_cpu], 0x2D ; below 45 -> 45%
     jbe _cpu_hit ; jump if below or equal to that
-    ;cmp 90, cpu_rand_num
-    jg _cpu_forfeit ; jump to forfeit if higher
-    jmp _cpu_stand ; other 45%
+    cmp byte[offset n_cpu], 0x5A ; above 90 -> 10%
+    jge _cpu_forfeit ; jump to forfeit if higher
+    jmp _cpu_stand ; between 45 and 90 -> 45% 
     
 
 _cpu_hit:
@@ -1406,21 +1406,24 @@ _inc_cpu_win:
 ; Gameplay
 
 start:
-    jmp _ask_total_bet_amount
+    ;jmp _player_turn
+    jmp _cpu_turn
+    
+    ;jmp _ask_total_bet_amount
     ;jmp _ask_risk_level
-   ;jmp _ask_total_bet_amount
-   ;call ask_num_decks
+    ;jmp _ask_total_bet_amount
+    ;call ask_num_decks
    
 _player_turn:
-    cmp word [offset total_player_bets],0   ;check if player hit 0 total bets before each turn
-    je _lose        ;cpu wins
+    ;cmp word [offset total_player_bets], 0   ;check if player hit 0 total bets before each turn
+    ;je _lose        ;cpu wins
     mov byte[offset p_to_d_cards], 2 ; resets cards to deal
     jmp player_hit ; starts round for player, does
 
 _cpu_turn:
-    cmp word [offset total_cpu_bets],0      ;check if cpu hit 0 total bets before each turn
-    je _win         ;player wins
-    mov byte[offset p_to_d_cards], 2 ; resets cards to deal
+    ;cmp word [offset total_cpu_bets],0      ;check if cpu hit 0 total bets before each turn
+    ;je _win         ;player wins
+    mov byte[offset c_to_d_cards], 2 ; resets cards to deal
     jmp _cpu_hit ; starts round for player, does
 
 ; RESET CPU VALUES SOMEWHERE
