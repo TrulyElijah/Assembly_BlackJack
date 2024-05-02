@@ -105,6 +105,12 @@ a_cpu: db 0x03       ;A value a, odd and ideally co-prime to (3)
 m_cpu: db 0xFB       ;A large prime m that fits in a register of the required size (251)
 n_cpu: db 0x00 ;     ;random num n, for card indexing
 
+play_again_question: db "Would you like to play again (y/n)"; one character
+
+win_whole_game: db "You won the entire game!"
+lose_whole_game: db "You lose the entire game"
+tie_whole_game: db "You tied your opponent"
+
 
 
 
@@ -170,7 +176,7 @@ buffer6:    ;value for amount of round bet made
                     ; Second value: number of bytes
     db 0xff
     
-buffer7:
+buffer7: ; for
     db 0x06    ; Actual value read after INT
     db 0x06
     db [0xff, 0x06] ; 6 F's being shown 
@@ -178,6 +184,11 @@ buffer7:
                     ; Second value: number of those fillers we show
     db 0xff
 
+buffer8: ; y/n value for ask play again question
+    db 0x01
+    db 0x01
+    db [0xff, 0x01]
+    db 0xff
 
 def calc_num_cards{
     mov ax,0    ;reset ax
@@ -405,8 +416,7 @@ convert_A_cpu:
     mov byte [offset c_to_d_cards], al   ; move value back into memory
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
 
 convert_2_cpu:
     mov al, byte [8]     
@@ -418,8 +428,7 @@ convert_2_cpu:
     mov byte [offset c_to_d_cards], al  
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
     
 
 convert_3_cpu:
@@ -432,8 +441,7 @@ convert_3_cpu:
     mov byte [offset c_to_d_cards], al   
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
     
 convert_4_cpu:
     mov al, byte [8]       
@@ -444,8 +452,7 @@ convert_4_cpu:
     mov byte [offset c_to_d_cards], al 
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
    
 convert_5_cpu:
     mov al, byte [8]       
@@ -456,8 +463,7 @@ convert_5_cpu:
     mov byte [offset c_to_d_cards], al  
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
    
 convert_6_cpu:
     mov al, byte [8]       
@@ -468,8 +474,7 @@ convert_6_cpu:
     mov byte [offset c_to_d_cards], al  
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
    
 convert_7_cpu:
     mov al, byte [8]      
@@ -480,8 +485,7 @@ convert_7_cpu:
     mov byte [offset c_to_d_cards], al  
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
   
 convert_8_cpu:
     mov al, byte [8]     
@@ -492,8 +496,7 @@ convert_8_cpu:
     mov byte [offset c_to_d_cards], al 
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
 
 convert_9_cpu:
     mov al, byte [8]     
@@ -504,8 +507,7 @@ convert_9_cpu:
     mov byte [offset c_to_d_cards], al  
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
 
 convert_T_cpu:
     mov al, byte [8]      
@@ -516,46 +518,45 @@ convert_T_cpu:
     mov byte [offset c_to_d_cards], al  
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
     
 convert_J_cpu:
     mov al, byte [8]    
-    add al, 0xB             ; Add the integer value for 'J' (e.g., 11 for Jack)
+    add al, 0xA            ; Add the integer value for 'J' (e.g., 11 for Jack)
     mov byte [8], al       
     mov al, byte [offset c_to_d_cards]        ; Load current value of byte[7] into al
     sub al, 0x01                                       ; sub 1 from player_left_to_deal
     mov byte [offset c_to_d_cards], al   ; move value back into memory
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
    
 convert_Q_cpu:
     mov al, byte [8]        ; Load current value of byte[7] into al
-    add al, 0xC             ; Add the integer value for 'Q' (e.g., 12 for Queen)
+    add al, 0xA             ; Add the integer value for 'Q' (e.g., 12 for Queen)
     mov byte [8], al        ; Store the result back into byte[7]
     mov al, byte [offset c_to_d_cards]        ; Load current value of byte[7] into al
     sub al, 0x01                                       ; sub 1 from player_left_to_deal
     mov byte [offset c_to_d_cards], al   ; move value back into memory
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
    
 convert_K_cpu:
     mov al, byte [8]        ; Load current value of byte[7] into al
-    add al, 0xD             ; Add the integer value for 'K' (e.g., 13 for King)
+    add al, 0xA             ; Add the integer value for 'K' (e.g., 13 for King)
     mov byte [8], al        ; Store the result back into byte[7]
     mov al, byte [offset c_to_d_cards]    
     sub al, 0x01                      
     mov byte [offset c_to_d_cards], al  
     cmp byte [offset c_to_d_cards], 0
     jg _cpu_hit
-    cmp byte [offset c_to_d_cards], 0
-    jbe _cpu_choice_meth
+    jmp _cpu_choice_meth
 
 _cpu_choice_meth:
+    cmp byte [offset cpu_score], 0x15
+    jge _win
+    
     call cpu_rng
  
     ; byte [offset n_cpu] ; random number 
@@ -571,10 +572,11 @@ _cpu_hit:
     call display_card_cpu
 
 _cpu_stand:
-    mov ax, 1
+    jmp _compare_scores ; compares round scores
     
 _cpu_forfeit:
-    mov ax, 1
+    jmp _win ; player wins, cpu loses round
+
     
 
 
@@ -586,6 +588,7 @@ _cpu_forfeit:
 ; CPU specific^^
 
 
+; jump play_again? after each
 
 _win:
     ;print player wins statement
@@ -596,6 +599,7 @@ _win:
     MOV BP, OFFSET player_win   ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
+    jmp _inc_player_win
 
 
 _tie:
@@ -607,6 +611,7 @@ _tie:
     MOV BP, OFFSET game_tie   ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
+    ;jmp _ask_play_again
 
 _lose:
     ;print cpu win statement
@@ -617,8 +622,7 @@ _lose:
     MOV BP, OFFSET cpu_win    ; move start offset of string in bp
     MOV DL, 0               ; start writing from col 0
     int 0x10                ; BIOS inter
-
-
+    jmp _inc_cpu_win
 
 
 
@@ -1155,7 +1159,7 @@ string_to_num: ;for player
 
 convert_A:
     mov al, byte [7]        ; Load current value of byte[7] into al
-    add al, 0x1             ; Add the integer value for 'A' (e.g., 11 for Ace)
+    add al, 0x01             ; Add the integer value for 'A' (e.g., 11 for Ace)
     mov byte [7], al        ; Store the result back into byte[7]
     mov al, 0
     
@@ -1164,8 +1168,7 @@ convert_A:
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
 
 convert_2:
     mov al, byte [7]        ; Load current value of byte[7] into al
@@ -1176,8 +1179,7 @@ convert_2:
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
     
 
 convert_3:
@@ -1189,8 +1191,7 @@ convert_3:
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
     
 convert_4:
     mov al, byte [7]        ; Load current value of byte[7] into al
@@ -1201,8 +1202,7 @@ convert_4:
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
    
 convert_5:
     mov al, byte [7]        ; Load current value of byte[7] into al
@@ -1213,8 +1213,7 @@ convert_5:
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
    
 convert_6:
     mov al, byte [7]        ; Load current value of byte[7] into al
@@ -1225,8 +1224,7 @@ convert_6:
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
    
 convert_7:
     mov al, byte [7]        ; Load current value of byte[7] into al
@@ -1237,8 +1235,7 @@ convert_7:
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
   
 convert_8:
     mov al, byte [7]        ; Load current value of byte[7] into al
@@ -1249,8 +1246,7 @@ convert_8:
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
 
 convert_9:
     mov al, byte [7]        ; Load current value of byte[7] into al
@@ -1261,8 +1257,7 @@ convert_9:
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
 
 convert_T:
     mov al, byte [7]        ; Load current value of byte[7] into al
@@ -1273,44 +1268,40 @@ convert_T:
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
     
 convert_J:
     mov al, byte [7]        ; Load current value of byte[7] into al
-    add al, 0xB             ; Add the integer value for 'J' (e.g., 11 for Jack)
+    add al, 0xA             ; Add the integer value for 'J' (e.g., 11 for Jack)
     mov byte [7], al        ; Store the result back into byte[7]
     mov al, byte [offset p_to_d_cards]        ; Load current value of byte[7] into al
     sub al, 0x01                                       ; sub 1 from player_left_to_deal
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
    
 convert_Q:
     mov al, byte [7]        ; Load current value of byte[7] into al
-    add al, 0xC             ; Add the integer value for 'Q' (e.g., 12 for Queen)
+    add al, 0xA             ; Add the integer value for 'Q' (e.g., 12 for Queen)
     mov byte [7], al        ; Store the result back into byte[7]
     mov al, byte [offset p_to_d_cards]        ; Load current value of byte[7] into al
     sub al, 0x01                                       ; sub 1 from player_left_to_deal
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
    
 convert_K:
     mov al, byte [7]        ; Load current value of byte[7] into al
-    add al, 0xD             ; Add the integer value for 'K' (e.g., 13 for King)
+    add al, 0xA             ; Add the integer value for 'K' (e.g., 13 for King)
     mov byte [7], al        ; Store the result back into byte[7]
     mov al, byte [offset p_to_d_cards]        ; Load current value of byte[7] into al
     sub al, 0x01                                       ; sub 1 from player_left_to_deal
     mov byte [offset p_to_d_cards], al   ; move value back into memory
     cmp byte [offset p_to_d_cards], 0
     jg player_hit
-    cmp byte [offset p_to_d_cards], 0
-    jbe player_choice_meth
+    jmp player_choice_meth
     
 
 
@@ -1320,6 +1311,9 @@ convert_K:
 ; create a buffer for player choice
 player_choice_meth:
 
+    cmp byte[offset player_score], 0x15 ;21
+    jge _lose
+    
     MOV AH, 0x13            ; move BIOS interrupt number in AH
     MOV CX, 40              ; move length of string in cx
     MOV BX, 0               ; mov 0 to bx, so we can move it to es
@@ -1364,6 +1358,40 @@ player_forfeit:
 ;}
 
 
+
+_win_game:
+    MOV AH, 0x13            ; move BIOS interrupt number in AH
+    MOV CX, 24              ; move length of string in cx
+    MOV BX, 0               ; mov 0 to bx, so we can move it to es
+    MOV ES, BX              ; move segment start of string to es, 0
+    MOV BP, OFFSET win_whole_game    ; move start offset of string in bp
+    MOV DL, 0               ; start writing from col 0
+    int 0x10                ; BIOS inter
+    jmp _end_game
+    
+
+_lose_game:
+    MOV AH, 0x13            ; move BIOS interrupt number in AH
+    MOV CX, 27              ; move length of string in cx
+    MOV BX, 0               ; mov 0 to bx, so we can move it to es
+    MOV ES, BX              ; move segment start of string to es, 0
+    MOV BP, OFFSET lose_whole_game    ; move start offset of string in bp
+    MOV DL, 0               ; start writing from col 0
+    int 0x10                ; BIOS inter
+    jmp _end_game
+    
+_tie_game:
+    MOV AH, 0x13            ; move BIOS interrupt number in AH
+    MOV CX, 21              ; move length of string in cx
+    MOV BX, 0               ; mov 0 to bx, so we can move it to es
+    MOV ES, BX              ; move segment start of string to es, 0
+    MOV BP, OFFSET tie_whole_game   ; move start offset of string in bp
+    MOV DL, 0               ; start writing from col 0
+    int 0x10                ; BIOS inter
+    jmp _end_game
+
+
+; for entire gain
 _compare_wins:
     mov ax, 0
     mov bx, 0
@@ -1371,9 +1399,10 @@ _compare_wins:
     mov bl, byte[offset cpu_wins]
     
     cmp al, bl
-    jg _win ; change proce
-    jl _lose
-    ;je tie
+    jg _win_game ; change proce
+    cmp al, bl
+    jl _lose_game
+    jmp _tie_game
     
 _compare_scores:
     mov ax,0
@@ -1383,21 +1412,46 @@ _compare_scores:
     mov bl, byte [offset cpu_score]
 
     cmp ax,bx
-    jg _inc_player_win
+    jg _win
     cmp ax,bx
-    jl _inc_cpu_win
+    jl _lose
+    jmp _tie ; jump if equal
     
 _inc_player_win:
     mov ax,0
     mov al,byte [offset player_wins]
     inc ax
     mov byte [offset player_wins],al
+    jmp _ask_play_again
 
 _inc_cpu_win:
     mov ax,0
     mov al,byte [offset cpu_wins]
     inc ax
     mov byte [offset cpu_wins],al
+    jmp _ask_play_again
+
+_ask_play_again:
+    ;print string instructions
+    MOV AH, 0x13            ; move BIOS interrupt number in AH
+    MOV CX, 32              ; move length of string in cx
+    MOV BX, 0               ; mov 0 to bx, so we can move it to es
+    MOV ES, BX              ; move segment start of string to es, 0
+    MOV BP, OFFSET play_again_question    ; move start offset of string in bp
+    MOV DL, 0               ; start writing from col 0
+    int 0x10                ; BIOS inter
+    
+    mov ah, 0x0A
+    lea dx, word buffer8
+    mov si, dx
+    int 0x21
+    
+    ;mov al, byte [si,2]
+    cmp byte[si,2], 0x59 ; y
+    je _player_turn
+    cmp byte[si,2], 0x4E ; n
+    je _compare_wins
+    jmp _ask_play_again
 
 
 
@@ -1406,8 +1460,7 @@ _inc_cpu_win:
 ; Gameplay
 
 start:
-    ;jmp _player_turn
-    jmp _cpu_turn
+    jmp _player_turn
     
     ;jmp _ask_total_bet_amount
     ;jmp _ask_risk_level
@@ -1428,5 +1481,5 @@ _cpu_turn:
 
 ; RESET CPU VALUES SOMEWHERE
 
-
-_game_loop:
+_end_game:
+    ; no more playing
