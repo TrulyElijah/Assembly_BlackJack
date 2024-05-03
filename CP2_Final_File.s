@@ -1,6 +1,6 @@
 ;CS 274
 ;
-; CP2
+; CP2  
 
 ;print string instructions
 ;MOV AH, 0x13            ; move BIOS interrupt number in AH
@@ -107,7 +107,7 @@ a_cpu: db 0x03       ;A value a, odd and ideally co-prime to (3)
 m_cpu: db 0xFB       ;A large prime m that fits in a register of the required size (251)
 n_cpu: db 0x00 ;     ;random num n, for card indexing
 
-play_again_question: db "Would you like to play again (y/n)"; one character
+play_again_question: db "Would you like to play again (Y,N)"; one character
 
 win_whole_game: db "You won the entire game!"
 lose_whole_game: db "You lose the entire game"
@@ -672,13 +672,14 @@ _lose:
 
 def check_suit{ ; checks what suit the card picked is
     ; 4th byte (5th index)
-    cmp byte[4],0x0C    ;check if n is below 12
+   
+    cmp byte [4],0x0C    ;check if n is below 12
     jbe _print_h        ;if so,print hearts
-    cmp byte[4],0x19    ;check if n is below 25
+    cmp byte [4],0x19    ;check if n is below 25
     jbe _print_c        ;if so,print clubs
-    cmp byte[4],0x26    ;check if n is below 38
+    cmp byte [4],0x26    ;check if n is below 38
     jbe _print_s        ;if so, print spades
-    cmp byte[4], 0x33   ;check if n is below 51
+    cmp byte [4], 0x33   ;check if n is below 51
     jbe _print_d        ;if so,print diamnonds
     
     ret
