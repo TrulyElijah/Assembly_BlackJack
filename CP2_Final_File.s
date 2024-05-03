@@ -40,10 +40,9 @@ total_cpu_bets: db 0x00  db 0x00      ;total bet amount cpu has   (takes 2 bytes
 
 round_player_bet: db 0x00  db 0x00        ;round bet player has made
 round_cpu_bet:  db 0x00 db 0x00        ;round bet cpu has made
+betting_pool: db 0x00 db 0x00           ;round_player_bet + round_cpu_bet (winner gets the sum)
 
 cpu_bet_multiplier: db 0x00            ; Determined by Conservative (20) or Aggressive mode (30)
-
-betting_pool: db 0x00 db 0x00           ;round_player_bet + round_cpu_bet (winner gets the sum)
 
 
 ; cpu risk levels
